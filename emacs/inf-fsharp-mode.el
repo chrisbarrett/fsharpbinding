@@ -98,7 +98,7 @@ be sent from another buffer in fsharp mode.
 (defconst inferior-fsharp-buffer-name
   (concat "*" inferior-fsharp-buffer-subname "*"))
 
-;; for compatibility with xemacs 
+;; for compatibility with xemacs
 
 (defun fsharp-sit-for (second &optional mili redisplay)
    (if (and (boundp 'running-xemacs) running-xemacs)
@@ -169,7 +169,7 @@ Input and output via buffer `*inferior-fsharp*'."
       (setq count (+ count 1)))
     (if  (equal (buffer-name (current-buffer))
                 inferior-fsharp-buffer-name)
-        (end-of-buffer))
+        (goto-char (point-max)))
     (while
         (> count 0)
       (previous-multiframe-window)
@@ -206,15 +206,12 @@ Input and output via buffer `*inferior-fsharp*'."
   "Jump to the location of the last error as indicated by inferior toplevel."
   (interactive "r")
   (let ((loc (+ start
-                (save-excursion
-                  (set-buffer (get-buffer inferior-fsharp-buffer-name))
+                (with-current-buffer  (get-buffer inferior-fsharp-buffer-name)
                   (re-search-backward
                    (concat ;; comint-prompt-regexp
-                           "(\\([0-9]+\\),\\([0-9]+\\)): error"))
-;;                           "[ \t]*Characters[ \t]+\\([0-9]+\\)-[0-9]+:$"))
-                  (string-to-int (match-string 1))))))
+                    "(\\([0-9]+\\),\\([0-9]+\\)): error"))
+                  (string-to-number (match-string 1))))))
     (goto-line (- loc 1))))
-;;    (goto-char loc)))
 
 
 ;; as eval-phrase, but ignores errors.
@@ -242,15 +239,15 @@ output can be retreived later, asynchronously.")
 
 (defun inferior-fsharp-eval-phrase (arg &optional min max)
   "Send the phrase containing the point to the fsharp process.
-With prefix-arg send as many phrases as its numeric value, 
+With prefix-arg send as many phrases as its numeric value,
 If an error occurs during evalutaion, stop at this phrase and
-repport the error. 
+repport the error.
 
 Return nil if noerror and position of error if any.
 
 If arg's numeric value is zero or negative, evaluate the current phrase
-or as many as prefix arg, ignoring evaluation errors. 
-This allows to jump other erroneous phrases. 
+or as many as prefix arg, ignoring evaluation errors.
+This allows to jump other erroneous phrases.
 
 Optional arguments min max defines a region within which the phrase
 should lies."
@@ -275,8 +272,8 @@ should lies."
           (cond ((re-search-forward
                   " *Characters \\([01-9][01-9]*\\)-\\([1-9][01-9]*\\):\n[^W]"
                   (point-max) t)
-                 (setq beg (string-to-int (fsharp-match-string 1)))
-                 (setq end (string-to-int (fsharp-match-string 2)))
+                 (setq beg (string-to-number (fsharp-match-string 1)))
+                 (setq end (string-to-number (fsharp-match-string 2)))
                  (switch-to-buffer buf)
                  (goto-char orig)
                  (forward-byte end)
@@ -338,12 +335,12 @@ should lies."
              (progn
                (move-overlay fsharp-error-overlay beg end (current-buffer))
                (beep) (if wait (read-event) (fsharp-sit-for 60)))
-           (delete-overlay fsharp-error-overlay)))))  
+           (delete-overlay fsharp-error-overlay)))))
 
 ;; wait some amount for ouput, that is, until inferior-fsharp-output is set
 ;; to true. Hence, interleaves sitting for shorts delays and checking the
-;; flag. Give up after some time. Typing into the source buffer will cancel 
-;; waiting, i.e. may report 'No result yet' 
+;; flag. Give up after some time. Typing into the source buffer will cancel
+;; waiting, i.e. may report 'No result yet'
 
 (defun fsharp-wait-output (&optional before after)
   (let ((c 1))
@@ -371,5 +368,9 @@ should lies."
     (comint-send-input)))
 
 (provide 'inf-fsharp-mode)
+
+;; Local Variables:
+;; byte-compile-warnings: (not cl-functions)
+;; End:
 
 ;;; inf-sharp-mode.el ends here
